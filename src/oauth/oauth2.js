@@ -143,6 +143,10 @@ export default class OAuth2 {
           }
         }
 
+        if (paramName == 'redirect_uri') {
+          paramValue = encodeURIComponent(paramValue);
+        }
+
         keyValuePairs.push([paramName, paramValue])
       })
     })
