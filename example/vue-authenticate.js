@@ -1209,6 +1209,10 @@ OAuth2.prototype._stringifyRequestParams = function _stringifyRequestParams () {
         }
       }
 
+      if (paramName == 'redirect_uri') {
+        paramValue = encodeURIComponent(paramValue);
+      }
+
       keyValuePairs.push([paramName, paramValue]);
     });
   });
