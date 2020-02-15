@@ -715,9 +715,7 @@ var defaultOptions = {
       popupOptions: null,
       responseType: 'code',
       responseParams: {
-        code: 'code',
-        clientId: 'clientId',
-        redirectUri: 'redirectUri'
+        
       }
     }
   }
@@ -1058,6 +1056,8 @@ OAuth.prototype.buildQueryString = function buildQueryString (params) {
   return parsedParams.join('&');
 };
 
+var pkceChallenge = require('pkce-challenge');
+
 /**
  * Default provider configuration
  * @type {Object}
@@ -1073,15 +1073,22 @@ var defaultProviderConfig$1 = {
   scopeDelimiter: null,
   state: null,
   requiredUrlParams: null,
+  codeChallenge: null,
+  codeChallengeMethod: 'S256',
   defaultUrlParams: ['response_type', 'client_id', 'redirect_uri'],
+  requiredUrlParams: ['state','scope','code_challenge','code_challenge_method'],
   responseType: 'code',
   responseParams: {
     code: 'code',
-    clientId: 'clientId',
-    redirectUri: 'redirectUri'
+    client_id: 'clientId',
+    redirect_uri: 'redirectUri',
   },
   oauthType: '2.0',
   popupOptions: {}
+};
+
+var defaultExchangePayload = {
+  grant_type: 'authorization_code'
 };
 
 var OAuth2 = function OAuth2($http, storage, providerConfig, options) {
@@ -1090,6 +1097,20 @@ var OAuth2 = function OAuth2($http, storage, providerConfig, options) {
   this.providerConfig = objectExtend({}, defaultProviderConfig$1);
   this.providerConfig = objectExtend(this.providerConfig, providerConfig);
   this.options = options;
+    
+  this.pkce = null;
+};
+
+OAuth2.prototype.generatePkce = function generatePkce () {
+  this.pkce = pkceChallenge();
+  console.log("verifier: "+this.pkce.code_verifier);
+  console.log("challenge: "+this.pkce.code_challenge);
+
+  var pkceConfig = {
+    codeChallenge: this.pkce.code_challenge
+  };
+  this.providerConfig = objectExtend(this.providerConfig, pkceConfig);
+
 };
 
 OAuth2.prototype.init = function init (userData) {
@@ -1102,6 +1123,8 @@ OAuth2.prototype.init = function init (userData) {
     this.storage.setItem(stateName, this.providerConfig.state);
   }
 
+  this.generatePkce();
+    
   var url = [this.providerConfig.authorizationEndpoint, this._stringifyRequestParams()].join('?');
 
   this.oauthPopup = new OAuthPopup(url, this.providerConfig.name, this.providerConfig.popupOptions);
@@ -1135,10 +1158,15 @@ OAuth2.prototype.init = function init (userData) {
 OAuth2.prototype.exchangeForToken = function exchangeForToken (oauth, userData) {
     var this$1 = this;
 
-  var payload = objectExtend({}, userData);
+
+    
+  var payload = objectExtend({}, defaultExchangePayload);
+  payload = objectExtend(payload, userData);
+  console.log(this.providerConfig.responseParams);
+    
 
   for (var key in this$1.providerConfig.responseParams) {
-    var value = this$1.providerConfig.responseParams[key];
+ //   let value = this.providerConfig.responseParams[key]
 
     switch(key) {
       case 'code':
@@ -1154,6 +1182,13 @@ OAuth2.prototype.exchangeForToken = function exchangeForToken (oauth, userData) 
         payload[key] = oauth[key];
     }
   }
+
+  var pkcePayload = {
+    code_verifier: this.pkce.code_verifier
+  };
+  payload = objectExtend(payload, pkcePayload);
+    
+  console.log(payload);
 
   if (oauth.state) {
     payload.state = oauth.state;
@@ -1251,6 +1286,7 @@ var VueAuthenticate = function VueAuthenticate($http, overrideOptions) {
         }
       }
     },
+
   });
 
   // Setup request interceptors
@@ -1259,6 +1295,7 @@ var VueAuthenticate = function VueAuthenticate($http, overrideOptions) {
   } else {
     throw new Error('Request interceptor must be functions')
   }
+
 };
 
 /**
@@ -1411,6 +1448,8 @@ VueAuthenticate.prototype.authenticate = function authenticate (provider, userDa
     if (!providerConfig) {
       return reject(new Error('Unknown provider'))
     }
+
+      
 
     var providerInstance;
     switch (providerConfig.oauthType) {

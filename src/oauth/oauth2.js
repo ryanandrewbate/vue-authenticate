@@ -1,5 +1,6 @@
 import OAuthPopup from './popup.js'
 import { camelCase, isFunction, isString, objectExtend, joinUrl } from '../utils.js'
+const pkceChallenge = require('pkce-challenge');
 
 /**
  * Default provider configuration
@@ -16,15 +17,22 @@ const defaultProviderConfig = {
   scopeDelimiter: null,
   state: null,
   requiredUrlParams: null,
+  codeChallenge: null,
+  codeChallengeMethod: 'S256',
   defaultUrlParams: ['response_type', 'client_id', 'redirect_uri'],
+  requiredUrlParams: ['state','scope','code_challenge','code_challenge_method'],
   responseType: 'code',
   responseParams: {
     code: 'code',
-    clientId: 'clientId',
-    redirectUri: 'redirectUri'
+    client_id: 'clientId',
+    redirect_uri: 'redirectUri',
   },
   oauthType: '2.0',
   popupOptions: {}
+}
+
+const defaultExchangePayload = {
+  grant_type: 'authorization_code'
 }
 
 export default class OAuth2 {
@@ -34,6 +42,20 @@ export default class OAuth2 {
     this.providerConfig = objectExtend({}, defaultProviderConfig)
     this.providerConfig = objectExtend(this.providerConfig, providerConfig)
     this.options = options
+    
+    this.pkce = null
+  }
+
+  generatePkce() {
+    this.pkce = pkceChallenge();
+    console.log("verifier: "+this.pkce.code_verifier);
+    console.log("challenge: "+this.pkce.code_challenge);
+
+    let pkceConfig = {
+      codeChallenge: this.pkce.code_challenge
+    }
+    this.providerConfig = objectExtend(this.providerConfig, pkceConfig)
+
   }
 
   init(userData) {
@@ -44,6 +66,8 @@ export default class OAuth2 {
       this.storage.setItem(stateName, this.providerConfig.state)
     }
 
+    this.generatePkce()
+    
     let url = [this.providerConfig.authorizationEndpoint, this._stringifyRequestParams()].join('?')
 
     this.oauthPopup = new OAuthPopup(url, this.providerConfig.name, this.providerConfig.popupOptions)
@@ -75,10 +99,15 @@ export default class OAuth2 {
    * @return {[type]}          [description]
    */
   exchangeForToken(oauth, userData) {
-    let payload = objectExtend({}, userData)
+
+    
+    let payload = objectExtend({}, defaultExchangePayload)
+    payload = objectExtend(payload, userData)
+    console.log(this.providerConfig.responseParams)
+    
 
     for (let key in this.providerConfig.responseParams) {
-      let value = this.providerConfig.responseParams[key]
+ //     let value = this.providerConfig.responseParams[key]
 
       switch(key) {
         case 'code':
@@ -94,6 +123,13 @@ export default class OAuth2 {
           payload[key] = oauth[key]
       }
     }
+
+    let pkcePayload = {
+      code_verifier: this.pkce.code_verifier
+    }
+    payload = objectExtend(payload, pkcePayload)
+    
+    console.log(payload)
 
     if (oauth.state) {
       payload.state = oauth.state
