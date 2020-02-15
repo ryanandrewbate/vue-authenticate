@@ -1160,7 +1160,6 @@ OAuth2.prototype.exchangeForToken = function exchangeForToken (oauth, userData) 
     
   var payload = objectExtend({}, defaultExchangePayload);
   payload = objectExtend(payload, userData);
-    
 
   for (var key in this$1.providerConfig.responseParams) {
 
@@ -1184,7 +1183,7 @@ OAuth2.prototype.exchangeForToken = function exchangeForToken (oauth, userData) 
   };
   payload = objectExtend(payload, pkcePayload);
     
-    
+  
   if (oauth.state) {
     payload.state = oauth.state;
   }

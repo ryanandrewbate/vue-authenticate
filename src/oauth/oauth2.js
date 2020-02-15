@@ -101,7 +101,6 @@ export default class OAuth2 {
     
     let payload = objectExtend({}, defaultExchangePayload)
     payload = objectExtend(payload, userData)
-    
 
     for (let key in this.providerConfig.responseParams) {
 
@@ -125,7 +124,7 @@ export default class OAuth2 {
     }
     payload = objectExtend(payload, pkcePayload)
     
-    
+  
     if (oauth.state) {
       payload.state = oauth.state
     }
