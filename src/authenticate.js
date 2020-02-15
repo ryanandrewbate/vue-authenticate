@@ -11,6 +11,9 @@ import OAuth1 from './oauth/oauth1.js'
 import OAuth2 from './oauth/oauth2.js'
 
 export default class VueAuthenticate {
+
+
+
   constructor($http, overrideOptions) {
     let options = objectExtend({}, defaultOptions)
     options = objectExtend(options, overrideOptions)
@@ -44,6 +47,7 @@ export default class VueAuthenticate {
           }
         }
       },
+
     })
 
     // Setup request interceptors
@@ -52,6 +56,7 @@ export default class VueAuthenticate {
     } else {
       throw new Error('Request interceptor must be functions')
     }
+
   }
 
   /**
@@ -196,6 +201,8 @@ export default class VueAuthenticate {
       if (!providerConfig) {
         return reject(new Error('Unknown provider'))
       }
+
+      
 
       let providerInstance;
       switch (providerConfig.oauthType) {

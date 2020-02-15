@@ -2,6 +2,8 @@ var fs = require('fs');
 var rollup = require('rollup');
 var uglify = require('uglify-js');
 var buble = require('rollup-plugin-buble');
+//var includePaths = require('rollup-plugin-includepaths');
+var nodeResolve = require('rollup-plugin-node-resolve');
 var package = require('../package.json');
 var banner =
     "/*!\n" +
@@ -12,7 +14,16 @@ var banner =
 
 rollup.rollup({
   entry: 'src/index.js',
-  plugins: [buble()]
+  plugins: [buble(),
+    // includePaths({
+    //     paths: ['node_modules/d3/node_modules']  // for npm 2
+    // }),
+    nodeResolve({
+        module: true,
+        main: true,
+        browser: false
+    })
+  ]
 })
 .then(function (bundle) {
   return write('dist/vue-authenticate.js', bundle.generate({

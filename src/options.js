@@ -187,9 +187,7 @@ export default {
       popupOptions: null,
       responseType: 'code',
       responseParams: {
-        code: 'code',
-        clientId: 'clientId',
-        redirectUri: 'redirectUri'
+        
       }
     }
   }
